@@ -6,7 +6,7 @@ Este projeto em linguagem C demonstra a implementação e funcionamento de três
 - **BFS** (Busca em Largura - Breadth-First Search)
 - **A\*** (Busca A-Star com heurística)
 
----
+
 
 ## 💡 Objetivo
 
@@ -27,3 +27,4 @@ No terminal, execute:
 
 ```bash
 gcc main.c -o busca
+
