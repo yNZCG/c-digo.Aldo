@@ -1,1 +1,186 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <limits.h>
+
+#define MAX 100
+
+typedef struct Node {
+    int destino;
+    int custo;
+    struct Node* prox;
+} Node;
+
+typedef struct {
+    Node* adj[MAX];
+    int heuristica[MAX];
+    int vertices;
+} Grafo;
+
+typedef struct {
+    int dados[MAX];
+    int inicio, fim;
+} Fila;
+
+typedef struct {
+    int dados[MAX];
+    int topo;
+} Pilha;
+
+void inicializaFila(Fila* f) { f->inicio = f->fim = 0; }
+bool filaVazia(Fila* f) { return f->inicio == f->fim; }
+void enfileira(Fila* f, int valor) { f->dados[f->fim++] = valor; }
+int desenfileira(Fila* f) { return f->dados[f->inicio++]; }
+
+void inicializaPilha(Pilha* p) { p->topo = -1; }
+bool pilhaVazia(Pilha* p) { return p->topo == -1; }
+void push(Pilha* p, int valor) { p->dados[++p->topo] = valor; }
+int pop(Pilha* p) { return p->dados[p->topo--]; }
+
+void inicializaGrafo(Grafo* g, int vertices) {
+    g->vertices = vertices;
+    for (int i = 0; i < vertices; i++) {
+        g->adj[i] = NULL;
+        g->heuristica[i] = 0;
+    }
+}
+
+void adicionaAresta(Grafo* g, int origem, int destino, int custo) {
+    Node* novo = (Node*) malloc(sizeof(Node));
+    novo->destino = destino;
+    novo->custo = custo;
+    novo->prox = g->adj[origem];
+    g->adj[origem] = novo;
+}
+
+void dfs(Grafo* g, int inicio, bool visitado[]) {
+    visitado[inicio] = true;
+    printf("%d ", inicio);
+    Node* atual = g->adj[inicio];
+    while (atual != NULL) {
+        if (!visitado[atual->destino])
+            dfs(g, atual->destino, visitado);
+        atual = atual->prox;
+    }
+}
+
+void bfs(Grafo* g, int inicio) {
+    bool visitado[MAX] = { false };
+    Fila fila;
+    inicializaFila(&fila);
+    visitado[inicio] = true;
+    enfileira(&fila, inicio);
+    while (!filaVazia(&fila)) {
+        int atual = desenfileira(&fila);
+        printf("%d ", atual);
+        for (Node* viz = g->adj[atual]; viz != NULL; viz = viz->prox) {
+            if (!visitado[viz->destino]) {
+                visitado[viz->destino] = true;
+                enfileira(&fila, viz->destino);
+            }
+        }
+    }
+}
+
+int a_estrela(Grafo* g, int inicio, int destino) {
+    int f[MAX], gScore[MAX];
+    bool visitado[MAX] = { false };
+    for (int i = 0; i < g->vertices; i++) {
+        f[i] = gScore[i] = INT_MAX;
+    }
+    gScore[inicio] = 0;
+    f[inicio] = g->heuristica[inicio];
+    while (1) {
+        int atual = -1;
+        int menorF = INT_MAX;
+        for (int i = 0; i < g->vertices; i++) {
+            if (!visitado[i] && f[i] < menorF) {
+                menorF = f[i];
+                atual = i;
+            }
+        }
+        if (atual == -1) break;
+        if (atual == destino) return gScore[destino];
+        visitado[atual] = true;
+        for (Node* viz = g->adj[atual]; viz != NULL; viz = viz->prox) {
+            int tentativo = gScore[atual] + viz->custo;
+            if (tentativo < gScore[viz->destino]) {
+                gScore[viz->destino] = tentativo;
+                f[viz->destino] = tentativo + g->heuristica[viz->destino];
+            }
+        }
+    }
+    return -1;
+}
+
+void menu() {
+    printf("\n--- Algoritmos de Busca em Grafos ---\n");
+    printf("1. DFS (Busca em Profundidade)\n");
+    printf("2. BFS (Busca em Largura)\n");
+    printf("3. A* (Busca A-Star)\n");
+    printf("0. Sair\n");
+    printf("Escolha uma opcao: ");
+}
+
+int main() {
+    Grafo g;
+    inicializaGrafo(&g, 6);
+    adicionaAresta(&g, 0, 1, 1);
+    adicionaAresta(&g, 0, 2, 4);
+    adicionaAresta(&g, 1, 2, 2);
+    adicionaAresta(&g, 1, 3, 5);
+    adicionaAresta(&g, 2, 4, 3);
+    adicionaAresta(&g, 3, 5, 1);
+    adicionaAresta(&g, 4, 5, 2);
+    g.heuristica[0] = 7;
+    g.heuristica[1] = 6;
+    g.heuristica[2] = 2;
+    g.heuristica[3] = 1;
+    g.heuristica[4] = 1;
+    g.heuristica[5] = 0;
+    int opcao;
+    do {
+        menu();
+        scanf("%d", &opcao);
+        int inicio, destino;
+        switch (opcao) {
+            case 1:
+                printf("Digite o vértice de início: ");
+                scanf("%d", &inicio);
+                {
+                    bool visitado[MAX] = { false };
+                    printf("DFS a partir do vértice %d: ", inicio);
+                    dfs(&g, inicio, visitado);
+                    printf("\n");
+                }
+                break;
+            case 2:
+                printf("Digite o vértice de início: ");
+                scanf("%d", &inicio);
+                printf("BFS a partir do vértice %d: ", inicio);
+                bfs(&g, inicio);
+                printf("\n");
+                break;
+            case 3:
+                printf("Digite o vértice de início: ");
+                scanf("%d", &inicio);
+                printf("Digite o vértice de destino: ");
+                scanf("%d", &destino);
+                {
+                    int custo = a_estrela(&g, inicio, destino);
+                    if (custo >= 0)
+                        printf("Custo mínimo de %d até %d = %d\n", inicio, destino, custo);
+                    else
+                        printf("Caminho não encontrado.\n");
+                }
+                break;
+            case 0:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida. Tente novamente.\n");
+        }
+    } while (opcao != 0);
+    return 0;
+}
 
